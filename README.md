@@ -50,7 +50,7 @@ Follow these steps to run the pipeline:
 
 ## Future Enhancements
 
-The project can be extended with the following features:
+The project will be extended with the following features:
 
 - **Data Transformation**: Add preprocessing and cleaning steps before loading data into BigQuery.
 - **Pipeline Automation**: Integrate Apache Airflow to automate the entire workflow.
