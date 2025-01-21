@@ -1,0 +1,4 @@
+google-cloud-storage==2.10.0
+google-cloud-bigquery==3.11.4
+kaggle==1.5.13
+pandas==1.5.3
