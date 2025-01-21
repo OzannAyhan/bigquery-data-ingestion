@@ -26,7 +26,8 @@ To use the scripts, ensure the following:
    - Download a service account key file with the required permissions (access to GCS and BigQuery).
 
 3. **Python Environment**:
-   - Install the required libraries listed in `requirements.txt` (coming soon).
+   - Install the required libraries listed in `requirements.txt`
+   - pip install -r requirements.txt
 
 ---
 
