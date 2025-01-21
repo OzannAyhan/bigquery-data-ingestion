@@ -59,10 +59,4 @@ The project can be extended with the following features:
 
 ---
 
-## Author
-
-**Ozan Ayhan**  
-For questions or feedback, feel free to reach out!
-
----
 
