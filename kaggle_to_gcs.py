@@ -10,8 +10,11 @@ os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\HUAWEI\Desktop\Covid P
 def preprocess_csv(file_path):
     """Preprocess CSV files to make them BigQuery-compatible."""
     df = pd.read_csv(file_path)
-    # Replace '/' with '_' in column names
-    df.columns = [col.replace('/', '_') for col in df.columns]
+
+    # Rename columns (replace spaces, dots, slashes)
+    df.columns = [col.replace(".", "_").replace(" ", "_").replace("/", "_") for col in df.columns]
+
+    # Save the cleaned CSV file
     df.to_csv(file_path, index=False)
 
 def upload_to_gcs_direct(bucket_name, dataset_ref, temp_download_path):
@@ -46,7 +49,7 @@ def upload_to_gcs_direct(bucket_name, dataset_ref, temp_download_path):
     os.remove(zip_file_path)
 
 # Parameters
-bucket_name = "first-data-buckett" # Replace with your GCS bucket name
+bucket_name = "test-data-buckett" # Replace with your GCS bucket name
 dataset_ref = "imdevskp/corona-virus-report"  # Kaggle dataset reference
 temp_download_path = r"C:\Users\HUAWEI\Desktop\Covid Project\temp"
 
