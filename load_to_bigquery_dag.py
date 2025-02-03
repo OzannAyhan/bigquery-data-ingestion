@@ -1,62 +1,56 @@
-#Will be fixed- Wrong file saved
-
-'''
-
-
 import os
-import zipfile
-import pandas as pd
-from kaggle.api.kaggle_api_extended import KaggleApi
-from google.cloud import storage
+from google.cloud import bigquery
 
-# Authenticate with Google Cloud Storage
+
+# Create dataset folder under project in big query by using => bq --location=US mk -d static-lens-448507-j9:covid_dataset
+
+
+# Set Google Cloud authentication for BigQuery
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\HUAWEI\Desktop\Covid Project\service-account-key.json"
 
-def preprocess_csv(file_path):
-    """Preprocess CSV files to make column names BigQuery-compatible."""
-    print(f"Preprocessing {file_path}...")
-    df = pd.read_csv(file_path)
-    df.columns = [col.replace(" ", "_").replace(".", "_").replace("/", "_") for col in df.columns]
-    df.to_csv(file_path, index=False)
-
-def upload_to_gcs_direct(bucket_name, dataset_ref, temp_download_path):
-    """Download dataset from Kaggle, preprocess, and upload to GCS."""
-    api = KaggleApi()
-    api.authenticate()
-
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-
-    # Step 1: Download the dataset to a temporary location
-    print(f"Downloading dataset '{dataset_ref}' from Kaggle...")
-    api.dataset_download_files(dataset_ref, path=temp_download_path, unzip=False)
-    zip_file_path = os.path.join(temp_download_path, f"{dataset_ref.split('/')[-1]}.zip")
-
-    # Step 2: Extract and preprocess files
-    with zipfile.ZipFile(zip_file_path, 'r') as z:
-        for file_name in z.namelist():
-            extracted_path = os.path.join(temp_download_path, file_name)
-            z.extract(file_name, temp_download_path)
-            if file_name.endswith('.csv'):
-                preprocess_csv(extracted_path)  # Preprocess column names
-            
-            # Step 3: Upload preprocessed file to GCS
-            print(f"Uploading {file_name} to GCS...")
-            blob = bucket.blob(file_name)
-            blob.upload_from_filename(extracted_path)
-            print(f"Uploaded {file_name} to bucket {bucket_name}.")
+def load_csv_to_bigquery(bucket_name, file_name, dataset_id, table_id):
+    """Loads a CSV file from GCS to BigQuery."""
     
-    # Clean up the temporary zip file
-    os.remove(zip_file_path)
+    client = bigquery.Client()
+    dataset_ref = client.dataset(dataset_id)
+    table_ref = dataset_ref.table(table_id)
 
-# Parameters
-bucket_name = "first-data-buckett"  # Replace with your GCS bucket name
-dataset_ref = "imdevskp/corona-virus-report"  # Kaggle dataset reference
-temp_download_path = r"C:\Users\HUAWEI\Desktop\Covid Project\temp"
+    uri = f"gs://{bucket_name}/{file_name}"  # GCS file path
 
-# Ensure the temporary folder exists
-if not os.path.exists(temp_download_path):
-    os.makedirs(temp_download_path)
+    job_config = bigquery.LoadJobConfig(
+        source_format=bigquery.SourceFormat.CSV,
+        skip_leading_rows=1,
+        autodetect=True,
+    )
 
-# Run the upload function
-upload_to_gcs_direct(bucket_name, dataset_ref, temp_download_path)
+    print(f"Loading {file_name} into BigQuery table {dataset_id}.{table_id}...")
+
+    load_job = client.load_table_from_uri(uri, table_ref, job_config=job_config)
+    load_job.result()  # Wait for the job to complete
+
+    print(f"✅ Loaded {file_name} into {dataset_id}.{table_id} successfully!")
+
+def upload_all_csv_to_bigquery(bucket_name, dataset_id):
+    """Loads all CSV files from GCS to BigQuery with new table names."""
+    
+    # List of all CSV files uploaded to GCS
+    csv_files = [
+        "country_wise_latest.csv",
+        "covid_19_clean_complete.csv",
+        "day_wise.csv",
+        "full_grouped.csv",
+        "usa_county_wise.csv"
+    ]
+    
+    for file_name in csv_files:
+        # Generate a new table name based on the file name
+        table_id = file_name.replace(".csv", "").replace("-", "_").replace(" ", "_")
+        
+        print(f"Processing file: {file_name} -> Table: {table_id}")
+        load_csv_to_bigquery(bucket_name, file_name, dataset_id, table_id)
+
+# Example Usage
+bucket_name = "test-data-buckett"
+dataset_id = "covid_dataset"
+
+upload_all_csv_to_bigquery(bucket_name, dataset_id)
